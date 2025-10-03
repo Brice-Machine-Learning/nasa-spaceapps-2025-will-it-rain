@@ -19,7 +19,9 @@ The goal: provide event organizers with a clear, user-friendly forecast so no pa
   - 📧 [brice@devbybrice.com](mailto:brice@devbybrice.com)  
   - 💬 Discord: DarkAvenger  
 
-- **[Friend’s Name]** – Data wrangling, modeling, EDA  
+- **Ainesh Balaga** – Data wrangling, modeling, EDA
+  - 📧 [balagaainesh@gmail.com](mailto:balagaainesh@gmail.com)
+  - 💬 Discord: ab
 
 ---
 
