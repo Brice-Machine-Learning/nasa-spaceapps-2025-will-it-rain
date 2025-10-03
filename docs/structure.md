@@ -3,22 +3,41 @@
 nasa-spaceapps-2025-will-it-rain/
 │
 ├── README.md
-├── requirements.txt           # or pyproject.toml if you prefer poetry/uv
-├── src/
-│   ├── api/                   # FastAPI or Flask backend
-│   │   └── main.py
-│   ├── data/                  # data wrangling scripts
-│   │   └── preprocess.py
-│   ├── models/                # ML/weather prediction logic
-│   │   └── predictor.py
-│   └── utils/                 # helpers (logging, config)
-│
-├── notebooks/                 # quick EDA and model tests
-│   └── eda.ipynb
-│
+├── requirements.txt
 ├── docs/
-│   ├── resources.md           # links to NASA/NOAA data, APIs
-│   ├── architecture.md        # diagram of data flow
-│   └── pitch.md               # draft pitch/demo notes
+│   ├── plan.md
+│   ├── resources.md
+│   └── architecture.md
+│
+├── src/
+│   ├── __init__.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── main.py           # FastAPI backend
+│   │
+│   ├── data/
+│   │   ├── __init__.py
+│   │   └── preprocess.py     # wrangling scripts
+│   │
+│   ├── models/
+│   │   ├── __init__.py
+│   │   └── predictor.py      # ML model class or functions
+│   │
+│   └── utils/
+│       ├── __init__.py
+│       └── helpers.py
+│
+├── notebooks/
+│   └── eda.ipynb          # exploratory data analysis
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_api.py         # FastAPI/Flask endpoint tests
+│   ├── test_data.py        # data cleaning/wrangling
+│   └── test_model.py       # ML model output sanity checks
+│
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml      # GitHub Actions for CI/CD
 │
 └── .gitignore
