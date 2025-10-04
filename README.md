@@ -21,7 +21,7 @@ The goal: provide event organizers with a clear, user-friendly forecast so no pa
 
 - **Ainesh Balaga** – Data wrangling, modeling, EDA
   - 📧 [balagaainesh@gmail.com](mailto:balagaainesh@gmail.com)
-  - 💬 Discord: ab
+  - 💬 Discord: abalaga
 
 ---
 
