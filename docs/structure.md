@@ -11,9 +11,25 @@ nasa-spaceapps-2025-will-it-rain/
 │
 ├── src/
 │   ├── __init__.py
+│   │
 │   ├── api/
 │   │   ├── __init__.py
-│   │   └── main.py           # FastAPI backend
+│   │   ├── main.py           # FastAPI backend
+│   │   └── routes/
+│   │       ├── health.py          # /health
+│   │       ├── location.py        # /location
+│   │       ├── dataset.py         # /dataset
+│   │       ├── preprocess.py      # /preprocess
+│   │       └── predict.py         # /predict
+│   │
+│   ├── config/
+│   │   └── settings.py
+│   │
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── location_service.py    # talk to geocoding API
+│   │   ├── dataset_service.py     # talk to NASA API
+│   │   └── model_service.py       # orchestrates model pipeline
 │   │
 │   ├── data/
 │   │   ├── __init__.py
