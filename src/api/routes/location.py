@@ -1,14 +1,14 @@
 """src/api/routes/location.py"""
 
-from fastapi import APIRouter
-from src.config.settings import get_settings
+from fastapi import APIRouter, HTTPException
+from src.services.location_service import fetch_coordinates   # ✅ correct for a module layout
 
-router = APIRouter()
-settings = get_settings()
+router = APIRouter(prefix="/location", tags=["Location"])
 
-@router.get('/location')
-def get_location():
-    return {
-        "latitude": settings.LOCATION_LATITUDE,
-        "longitude": settings.LOCATION_LONGITUDE,
-    }
+@router.get("/{city}")
+async def get_location(city: str, state: str = None, country: str = "US"):
+    result = await fetch_coordinates(city, state, country)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
