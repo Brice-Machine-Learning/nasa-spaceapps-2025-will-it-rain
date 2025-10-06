@@ -99,3 +99,119 @@ The backend now provides a **stable, extensible, and verified API layer** that c
 All subsequent endpoints will build on this foundation to deliver the final *“Will It Rain?”* MVP.  
 
 ---
+
+## 🧩 Dataset Service Enhancements  
+
+### Context  
+
+As the project transitioned from location-based geocoding to weather dataset retrieval, we encountered limitations in the NASA POWER API.  
+Initially, the backend attempted to pull multi-year CSV datasets (e.g., 2015–2024) in a single API call. However, NASA POWER rejects long-range queries with a **422 Unprocessable Entity** error because the server only supports smaller temporal windows.  
+
+To solve this, we re-engineered the `/dataset/{lat}/{lon}` service to:  
+
+1. Automatically **split long date ranges into yearly chunks**,  
+2. Retrieve and merge all years into a single consolidated dataset, and  
+3. Implement **local caching** to avoid redundant API calls.  
+
+These enhancements now allow the backend to download and store robust, multi-year weather datasets for model training while remaining within NASA’s API constraints.  
+
+---
+
+### Key Improvements  
+
+#### 1. **Chunked Retrieval**  
+
+- Multi-year requests (e.g., 2015–2024) are automatically broken into **year-by-year downloads**.  
+- Each year’s CSV is fetched separately and concatenated into a single DataFrame.  
+- This prevents API 422 errors while supporting large-scale data assembly for model training.  
+
+#### 2. **Automatic Local Caching**  
+
+- Fetched CSVs are saved to `/data/raw/` using coordinate and date-based filenames:  
+
+  ```text
+  nasa_power_<lat>_<lon>_<start>_<end>.csv
+  ```
+
+- On subsequent requests for the same coordinates and date range, the backend **skips re-downloading** and serves the existing file instantly.  
+- Significantly reduces latency and NASA API load during development and testing.  
+
+#### 3. **Configurable Date Ranges**  
+
+- The route now supports optional query parameters:  
+
+  ```text
+  /dataset/{lat}/{lon}?start=YYYYMMDD&end=YYYYMMDD
+  ```
+
+- Default range remains the **last 365 days**, but developers can specify multi-year spans for training data collection.  
+
+#### 4. **Resilience and Logging**  
+
+- Failed year-chunks (e.g., missing or incomplete data) are skipped automatically without breaking the pipeline.  
+- Console logs and (soon) persistent file-based logs record all dataset fetch events, including cached retrievals.  
+
+---
+
+### Example Request & Response  
+
+**Request:**  
+
+```sql
+GET /dataset/39.7392/-104.9903?start=20150101&end=20241231
+```
+
+**Response:**  
+
+```json
+{
+  "dataset": "NASA POWER",
+  "lat": 39.7392,
+  "lon": -104.9903,
+  "start": "20150101",
+  "end": "20241231",
+  "rows": 3650,
+  "columns": ["YEAR", "MO", "DY", "PRECTOT", "T2M", "RH2M"],
+  "file_path": "/data/raw/nasa_power_39.7392_-104.9903_20150101_20241231.csv",
+  "status": "downloaded (2015–2024) and saved"
+}
+```
+
+---
+
+### Why This Matters  
+
+| Issue | Solution | Benefit |
+|--------|-----------|----------|
+| NASA API rejects long date ranges (422) | Automatic year-based chunking | Full multi-year training data now supported |
+| Repeated downloads of same dataset | Local file caching | Faster response, reduced bandwidth |
+| Manual data assembly for training | Auto-concatenation of yearly CSVs | Single combined dataset ready for ML |
+| High API latency for testing | Cache detection & reuse | Instant local fetch after first request |
+
+---
+
+### Architectural Impact  
+
+| Layer | Enhancement | Description |
+|--------|--------------|-------------|
+| **Service Layer** | `dataset_service.py` rewritten for async chunking, caching, and CSV merging | Handles both training-scale and short-range inference data |
+| **API Layer** | `/dataset/{lat}/{lon}` route expanded with query parameters | Supports flexible date ranges and descriptive error handling |
+| **Storage Layer** | `/data/raw/` structured as persistent cache directory | Enables offline re-use for model training and experimentation |
+
+---
+
+### Next Planned Step  
+
+- Implement **structured logging** using Python’s `logging` module:  
+  - Log dataset fetches, cache hits, and failures to `logs/dataset_fetch.log`.  
+  - Include metadata such as timestamp, coordinates, date range, and status.  
+- Prepare `/preprocess` to consume cached CSVs directly for model-ready feature creation.  
+
+---
+
+### Summary  
+
+The dataset service now acts as a robust **data ingestion and caching layer** for the *“Will It Rain?”* backend.  
+It bridges real-world NASA climate data with the project’s training and prediction workflows — providing both reliability and flexibility.  
+
+By combining chunked retrieval, caching, and dynamic date ranges, the backend can now support model development at scale while remaining API-compliant and hackathon-optimized.  

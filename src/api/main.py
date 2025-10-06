@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config.settings import get_settings
-from src.api.routes import health, location
+from src.api.routes import health, location, dataset
 
 settings = get_settings()
 
@@ -35,6 +35,7 @@ app.add_middleware(
 # --- Routers ---
 app.include_router(health.router)
 app.include_router(location.router)
+app.include_router(dataset.router)
 
 
 # --- Root Endpoint ---
