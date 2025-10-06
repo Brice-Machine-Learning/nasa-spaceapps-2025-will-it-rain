@@ -14,6 +14,38 @@ DATA_DIR = os.path.join(os.getcwd(), "data", "raw")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
+
+# def parse_nasa_csv(csv_text: str) -> pd.DataFrame:
+#     """
+#     Parse NASA POWER CSV dynamically by skipping everything up to '-END HEADER-'.
+#     Works across all POWER products and date ranges.
+#     """
+#     lines = csv_text.splitlines()
+
+#     # find the end of the metadata header
+#     end_header_idx = None
+#     for i, line in enumerate(lines):
+#         if line.strip().startswith("-END HEADER-"):
+#             end_header_idx = i
+#             break
+
+#     if end_header_idx is None:
+#         raise ValueError("Could not find '-END HEADER-' in NASA CSV text")
+
+#     # everything after that line is the actual CSV table
+#     csv_data = "\n".join(lines[end_header_idx + 1 :]).strip()
+
+#     if not csv_data or "YEAR" not in csv_data:
+#         raise ValueError("NASA CSV body found, but no YEAR column — possible format mismatch")
+
+#     df = pd.read_csv(StringIO(csv_data))
+#     df = df.dropna(how="all").reset_index(drop=True)
+#     print(f"✅ Parsed {len(df)} rows, {len(df.columns)} columns from NASA POWER CSV")
+#     return df
+
+
+
+
 async def fetch_nasa_power_data(lat: float, lon: float, start: str = None, end: str = None):
     """
     Fetch daily weather data from NASA POWER API for given coordinates and date range.
@@ -69,6 +101,11 @@ async def fetch_nasa_power_data(lat: float, lon: float, start: str = None, end: 
 
             try:
                 response = await client.get(BASE_URL, params=params)
+                # ========================================
+                print("🔍 STATUS:", response.status_code)
+                print("🔍 HEADERS:", response.headers)
+                print("🔍 RAW TEXT PREVIEW:", response.text[:300])
+                # ========================================
                 response.raise_for_status()
                 df_chunk = pd.read_csv(StringIO(response.text), skiprows=10)
                 df_chunk = df_chunk.dropna(how="all").reset_index(drop=True)
@@ -100,3 +137,4 @@ async def fetch_nasa_power_data(lat: float, lon: float, start: str = None, end: 
         "file_path": file_path,
         "status": f"downloaded ({start_year}–{end_year}) and saved"
     }, df
+
