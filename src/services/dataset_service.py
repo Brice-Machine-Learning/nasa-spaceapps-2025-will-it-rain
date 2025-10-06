@@ -58,11 +58,12 @@ async def fetch_nasa_power_data(lat: float, lon: float, start: str = None, end: 
             chunk_end = f"{year}1231"
 
             params = {
-                "parameters": "PRECTOT,T2M,RH2M",
+                "parameters": "PRECTOTCORR,T2M,RH2M",
                 "start": chunk_start,
                 "end": chunk_end,
                 "latitude": lat,
                 "longitude": lon,
+                "community": "AG",
                 "format": "CSV",
             }
 

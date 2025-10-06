@@ -9,6 +9,11 @@ nasa-spaceapps-2025-will-it-rain/
 │   ├── resources.md
 │   └── architecture.md
 │
+├── data/
+│   ├── raw/                # raw data dumps
+│   ├── processed/          # cleaned and processed data
+│   └── external/           # external datasets if any
+│
 ├── src/
 │   ├── __init__.py
 │   │
