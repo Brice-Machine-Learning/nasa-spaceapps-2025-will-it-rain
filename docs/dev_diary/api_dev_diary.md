@@ -1,12 +1,16 @@
-# API Documentation
+---
+title: "API Development Diary – NASA POWER Integration"
+date: 2025-10-05
+author: Brice Nelson
+role: Backend & Infrastructure Lead
+project: NASA Space Apps 2025 – "Will It Rain?"
+---
 
-This document provides an overview of the backend API for the "Will It Rain?" project. The API is built using FastAPI and provides endpoints for location services and weather data retrieval.
-
-## Date: 2025-10-05
-
-## 🛰️ Backend Progress Report
-
-### NASA Space Apps 2025 – *“Will It Rain?”*
+# API Development Diary – NASA POWER Integration
+**Date:** October 05, 2025  
+**Author:** Brice Nelson  
+**Role:** Backend & Infrastructure Lead  
+**Project:** NASA Space Apps 2025 – “Will It Rain?”  
 
 ---
 
@@ -215,3 +219,5 @@ The dataset service now acts as a robust **data ingestion and caching layer** fo
 It bridges real-world NASA climate data with the project’s training and prediction workflows — providing both reliability and flexibility.  
 
 By combining chunked retrieval, caching, and dynamic date ranges, the backend can now support model development at scale while remaining API-compliant and hackathon-optimized.  
+
+> *End of log entry — October 5, 2025*
