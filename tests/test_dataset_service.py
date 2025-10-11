@@ -6,7 +6,6 @@ tests/test_dataset_service.py
 import os
 import pytest
 import pandas as pd
-import asyncio
 from src.services.dataset_service import fetch_nasa_power_data
 
 @pytest.mark.asyncio
