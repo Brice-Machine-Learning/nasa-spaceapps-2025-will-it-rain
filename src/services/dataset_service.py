@@ -1,0 +1,139 @@
+import os
+import httpx
+import pandas as pd
+from io import StringIO
+from datetime import datetime
+
+""" 
+src/services/dataset_service.py
+Service to fetch and cache datasets from NASA POWER API.
+"""
+
+BASE_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
+
+
+def get_data_dir() -> str:
+    """Return (and create if needed) the data/raw directory relative to current working directory."""
+    data_dir = os.path.join(os.getcwd(), "data", "raw")
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+
+
+def parse_nasa_csv(csv_text: str) -> pd.DataFrame:
+    """
+    Parse NASA POWER CSV by skipping lines until '-END HEADER-'.
+    This handles variable header lengths safely.
+    """
+    lines = csv_text.splitlines()
+    end_idx = None
+
+    for i, line in enumerate(lines):
+        if line.strip().startswith("-END HEADER-"):
+            end_idx = i
+            break
+
+    if end_idx is None:
+        raise ValueError("Could not find '-END HEADER-' in NASA CSV text")
+
+    csv_body = "\n".join(lines[end_idx + 1 :])
+    df = pd.read_csv(StringIO(csv_body))
+    df = df.dropna(how="all").reset_index(drop=True)
+    return df
+
+
+
+
+
+async def fetch_nasa_power_data(lat: float, lon: float, start: str = None, end: str = None):
+    """
+    Fetch daily weather data from NASA POWER API for given coordinates and date range.
+    Automatically splits long ranges into yearly chunks to avoid 422 errors.
+    Caches combined CSV in /data/raw/.
+    """
+    DATA_DIR = get_data_dir()
+
+    # Default: one year ending today
+    today = datetime.utcnow()
+    if not start:
+        start = f"{today.year - 1}0101"
+    if not end:
+        end = f"{today.year}{today.month:02d}{today.day:02d}"
+
+    # Construct file path for combined dataset
+    filename = f"nasa_power_{lat:.4f}_{lon:.4f}_{start}_{end}.csv"
+    file_path = os.path.join(DATA_DIR, filename)
+
+    # ✅ Return cached file if available
+    if os.path.exists(file_path):
+        df = pd.read_csv(file_path)
+        return {
+            "dataset": "NASA POWER",
+            "lat": lat,
+            "lon": lon,
+            "start": start,
+            "end": end,
+            "rows": len(df),
+            "columns": list(df.columns),
+            "file_path": file_path,
+            "status": "cached (existing file used)"
+        }, df
+
+    # Prepare chunked date ranges by year
+    start_year = int(start[:4])
+    end_year = int(end[:4])
+    dfs = []
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        for year in range(start_year, end_year + 1):
+            chunk_start = f"{year}0101"
+            chunk_end = f"{year}1231"
+
+            params = {
+                "parameters": "PRECTOTCORR,T2M,RH2M",
+                "start": chunk_start,
+                "end": chunk_end,
+                "latitude": lat,
+                "longitude": lon,
+                "community": "AG",
+                "format": "CSV",
+            }
+
+            try:
+                response = await client.get(BASE_URL, params=params)
+                print("🔍 STATUS:", response.status_code)
+                print("🔍 HEADERS:", response.headers)
+                print("🔍 RAW TEXT PREVIEW:", response.text[:300])
+                response.raise_for_status()
+
+                # ✅ NEW PARSING
+                df_chunk = parse_nasa_csv(response.text)
+                dfs.append(df_chunk)
+                print(f"✅ Downloaded {year} for ({lat}, {lon}) → {len(df_chunk)} rows")
+
+            except httpx.HTTPStatusError as e:
+                print(f"⚠️ Skipping {year} due to error: {e}")
+                continue
+
+    if not dfs:
+        raise ValueError(f"No valid data fetched for {lat}, {lon} in range {start}–{end}")
+
+    # Combine yearly chunks
+    df = pd.concat(dfs, ignore_index=True)
+    expected_cols = ["YEAR", "MO", "DY", "PRECTOT", "T2M", "RH2M"]
+    df = df[[c for c in df.columns if c in expected_cols]]
+
+    # Save combined CSV
+    df.to_csv(file_path, index=False)
+
+    return {
+        "dataset": "NASA POWER",
+        "lat": lat,
+        "lon": lon,
+        "start": start,
+        "end": end,
+        "rows": len(df),
+        "columns": list(df.columns),
+        "file_path": file_path,
+        "status": f"downloaded ({start_year}–{end_year}) and saved"
+    }, df
