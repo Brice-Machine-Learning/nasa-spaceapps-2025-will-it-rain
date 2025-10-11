@@ -10,38 +10,37 @@ Service to fetch and cache datasets from NASA POWER API.
 """
 
 BASE_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
-DATA_DIR = os.path.join(os.getcwd(), "data", "raw")
-
-os.makedirs(DATA_DIR, exist_ok=True)
 
 
-# def parse_nasa_csv(csv_text: str) -> pd.DataFrame:
-#     """
-#     Parse NASA POWER CSV dynamically by skipping everything up to '-END HEADER-'.
-#     Works across all POWER products and date ranges.
-#     """
-#     lines = csv_text.splitlines()
+def get_data_dir() -> str:
+    """Return (and create if needed) the data/raw directory relative to current working directory."""
+    data_dir = os.path.join(os.getcwd(), "data", "raw")
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
 
-#     # find the end of the metadata header
-#     end_header_idx = None
-#     for i, line in enumerate(lines):
-#         if line.strip().startswith("-END HEADER-"):
-#             end_header_idx = i
-#             break
 
-#     if end_header_idx is None:
-#         raise ValueError("Could not find '-END HEADER-' in NASA CSV text")
 
-#     # everything after that line is the actual CSV table
-#     csv_data = "\n".join(lines[end_header_idx + 1 :]).strip()
+def parse_nasa_csv(csv_text: str) -> pd.DataFrame:
+    """
+    Parse NASA POWER CSV by skipping lines until '-END HEADER-'.
+    This handles variable header lengths safely.
+    """
+    lines = csv_text.splitlines()
+    end_idx = None
 
-#     if not csv_data or "YEAR" not in csv_data:
-#         raise ValueError("NASA CSV body found, but no YEAR column — possible format mismatch")
+    for i, line in enumerate(lines):
+        if line.strip().startswith("-END HEADER-"):
+            end_idx = i
+            break
 
-#     df = pd.read_csv(StringIO(csv_data))
-#     df = df.dropna(how="all").reset_index(drop=True)
-#     print(f"✅ Parsed {len(df)} rows, {len(df.columns)} columns from NASA POWER CSV")
-#     return df
+    if end_idx is None:
+        raise ValueError("Could not find '-END HEADER-' in NASA CSV text")
+
+    csv_body = "\n".join(lines[end_idx + 1 :])
+    df = pd.read_csv(StringIO(csv_body))
+    df = df.dropna(how="all").reset_index(drop=True)
+    return df
+
 
 
 
@@ -52,6 +51,7 @@ async def fetch_nasa_power_data(lat: float, lon: float, start: str = None, end: 
     Automatically splits long ranges into yearly chunks to avoid 422 errors.
     Caches combined CSV in /data/raw/.
     """
+    DATA_DIR = get_data_dir()
 
     # Default: one year ending today
     today = datetime.utcnow()
@@ -101,16 +101,16 @@ async def fetch_nasa_power_data(lat: float, lon: float, start: str = None, end: 
 
             try:
                 response = await client.get(BASE_URL, params=params)
-                # ========================================
                 print("🔍 STATUS:", response.status_code)
                 print("🔍 HEADERS:", response.headers)
                 print("🔍 RAW TEXT PREVIEW:", response.text[:300])
-                # ========================================
                 response.raise_for_status()
-                df_chunk = pd.read_csv(StringIO(response.text), skiprows=10)
-                df_chunk = df_chunk.dropna(how="all").reset_index(drop=True)
+
+                # ✅ NEW PARSING
+                df_chunk = parse_nasa_csv(response.text)
                 dfs.append(df_chunk)
-                print(f"✅ Downloaded {year} for ({lat}, {lon})")
+                print(f"✅ Downloaded {year} for ({lat}, {lon}) → {len(df_chunk)} rows")
+
             except httpx.HTTPStatusError as e:
                 print(f"⚠️ Skipping {year} due to error: {e}")
                 continue
@@ -137,4 +137,3 @@ async def fetch_nasa_power_data(lat: float, lon: float, start: str = None, end: 
         "file_path": file_path,
         "status": f"downloaded ({start_year}–{end_year}) and saved"
     }, df
-
